@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Highway Rush — бесконечная 3D-гонка по шоссе с трафиком прямо в браузере.">
+  <title>Highway Rush</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ff3d6e'/%3E%3Cpath d='M18 44h28l-4-14H22z' fill='%23fff'/%3E%3Ccircle cx='24' cy='46' r='5' fill='%23111'/%3E%3Ccircle cx='40' cy='46' r='5' fill='%23111'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+<div id="app">
+  <div id="ui">
+
+    <!-- ЗАГРУЗКА -->
+    <section id="screen-loading" class="screen active center">
+      <div class="logo">HIGHWAY<span>RUSH</span></div>
+      <div class="loader"></div>
+    </section>
+
+    <!-- ГЛАВНОЕ МЕНЮ -->
+    <section id="screen-menu" class="screen">
+      <div class="topbar">
+        <div class="lang-switch"></div>
+        <div class="coins-pill"><i class="coin"></i><span class="coins-value">0</span></div>
+      </div>
+      <div class="menu-center">
+        <div class="logo">HIGHWAY<span>RUSH</span></div>
+        <div class="menu-buttons">
+          <button class="btn btn-primary btn-big" data-action="play" data-i18n="play"></button>
+          <button class="btn" data-action="garage" data-i18n="garage"></button>
+          <button class="btn" data-action="records" data-i18n="records"></button>
+          <button class="btn" data-action="settings" data-i18n="settings"></button>
+        </div>
+      </div>
+      <div class="menu-footer">
+        <button class="btn btn-icon fs-btn" data-action="fullscreen" title="Fullscreen">⛶</button>
+        <span class="hint-text" data-i18n="menuHint"></span>
+      </div>
+    </section>
+
+    <!-- ВЫБОР РЕЖИМА -->
+    <section id="screen-modes" class="screen">
+      <div class="screen-head">
+        <button class="btn btn-back" data-action="back">←</button>
+        <h2 data-i18n="chooseMode"></h2>
+      </div>
+      <div class="cards" id="mode-cards"></div>
+    </section>
+
+    <!-- ВЫБОР ЛОКАЦИИ -->
+    <section id="screen-locations" class="screen">
+      <div class="screen-head">
+        <button class="btn btn-back" data-action="back">←</button>
+        <h2 data-i18n="chooseLocation"></h2>
+      </div>
+      <div class="cards" id="location-cards"></div>
+    </section>
+
+    <!-- ГАРАЖ -->
+    <section id="screen-garage" class="screen">
+      <div class="screen-head">
+        <button class="btn btn-back" data-action="back">←</button>
+        <h2 data-i18n="garage"></h2>
+        <div class="coins-pill"><i class="coin"></i><span class="coins-value">0</span></div>
+      </div>
+      <div class="garage-layout">
+        <div class="garage-panel">
+          <div class="garage-name-row">
+            <button class="btn btn-icon" data-action="car-prev">‹</button>
+            <div class="garage-name" id="garage-name"></div>
+            <button class="btn btn-icon" data-action="car-next">›</button>
+          </div>
+          <div class="stats" id="garage-stats"></div>
+          <div class="colors" id="garage-colors"></div>
+          <div class="garage-note" id="garage-note"></div>
+          <button class="btn btn-primary" id="garage-main-btn" data-action="car-main"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- РЕКОРДЫ -->
+    <section id="screen-records" class="screen">
+      <div class="screen-head">
+        <button class="btn btn-back" data-action="back">←</button>
+        <h2 data-i18n="records"></h2>
+      </div>
+      <div class="tabs" id="records-tabs"></div>
+      <div class="records-wrap"><table class="records" id="records-table"></table></div>
+    </section>
+
+    <!-- НАСТРОЙКИ -->
+    <section id="screen-settings" class="screen">
+      <div class="screen-head">
+        <button class="btn btn-back" data-action="back">←</button>
+        <h2 data-i18n="settings"></h2>
+      </div>
+      <div class="settings-list">
+        <label class="setting"><span data-i18n="musicVolume"></span><input type="range" min="0" max="100" id="set-music"></label>
+        <label class="setting"><span data-i18n="sfxVolume"></span><input type="range" min="0" max="100" id="set-sfx"></label>
+        <div class="setting"><span data-i18n="quality"></span>
+          <div class="seg" id="set-quality">
+            <button data-value="low" data-i18n="qualityLow"></button>
+            <button data-value="high" data-i18n="qualityHigh"></button>
+          </div>
+        </div>
+        <div class="setting"><span data-i18n="tiltControl"></span>
+          <div class="seg" id="set-tilt">
+            <button data-value="off" data-i18n="off"></button>
+            <button data-value="on" data-i18n="on"></button>
+          </div>
+        </div>
+        <div class="setting"><span data-i18n="language"></span><div class="lang-switch"></div></div>
+        <div class="setting"><span data-i18n="resetProgress"></span><button class="btn btn-small btn-danger" data-action="reset" data-i18n="reset"></button></div>
+      </div>
+    </section>
+
+    <!-- HUD -->
+    <section id="hud" class="screen">
+      <div class="hud-top">
+        <div class="hud-left">
+          <div class="hud-score"><span id="hud-score">0</span></div>
+          <div class="hud-combo" id="hud-combo"></div>
+          <div class="hud-oncoming" id="hud-oncoming"></div>
+        </div>
+        <div class="hud-center" id="hud-center"></div>
+        <div class="hud-right">
+          <div class="hud-small"><span id="hud-dist">0</span></div>
+          <div class="hud-small"><i class="coin"></i><span id="hud-coins">0</span></div>
+          <button class="btn btn-icon hud-pause" data-action="pause">❚❚</button>
+        </div>
+      </div>
+      <div class="hud-speed"><span id="hud-speed">0</span><small data-i18n="kmh"></small></div>
+      <div id="popups"></div>
+      <div id="touch-controls">
+        <div class="tc-left">
+          <button class="tc tc-steer" data-ctl="left">◀</button>
+          <button class="tc tc-steer" data-ctl="right">▶</button>
+        </div>
+        <div class="tc-right">
+          <button class="tc tc-horn" data-ctl="horn">📯</button>
+          <button class="tc tc-brake" data-ctl="brake" data-i18n="brakeShort"></button>
+          <button class="tc tc-gas" data-ctl="gas" data-i18n="gasShort"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ПАУЗА -->
+    <section id="screen-pause" class="screen center dim">
+      <div class="modal">
+        <h2 data-i18n="paused"></h2>
+        <button class="btn btn-primary" data-action="resume" data-i18n="resume"></button>
+        <button class="btn" data-action="restart" data-i18n="restart"></button>
+        <button class="btn" data-action="settings" data-i18n="settings"></button>
+        <button class="btn" data-action="menu" data-i18n="menu"></button>
+      </div>
+    </section>
+
+    <!-- РЕЗУЛЬТАТЫ -->
+    <section id="screen-results" class="screen center dim">
+      <div class="modal results">
+        <h2 id="results-title"></h2>
+        <div class="new-record" id="results-record" data-i18n="newRecord"></div>
+        <div class="results-grid" id="results-grid"></div>
+        <div class="modal-buttons">
+          <button class="btn btn-primary" data-action="restart" data-i18n="again"></button>
+          <button class="btn" data-action="garage" data-i18n="garage"></button>
+          <button class="btn" data-action="menu" data-i18n="menu"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ПОВЕРНИТЕ ТЕЛЕФОН -->
+    <section id="rotate-hint">
+      <div class="phone-icon">📱</div>
+      <p data-i18n="rotate"></p>
+      <button class="btn btn-small" data-action="dismiss-rotate" data-i18n="continueAnyway"></button>
+    </section>
+
+    <div id="flash"></div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
