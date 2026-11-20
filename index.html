@@ -129,6 +129,7 @@
           <div class="hud-score"><span id="hud-score">0</span></div>
           <div class="hud-combo" id="hud-combo"></div>
           <div class="hud-oncoming" id="hud-oncoming"></div>
+          <div class="hud-energy" id="hud-energy-box"><span class="en-icon">⚡</span><div class="energy-bar"><i id="hud-energy"></i></div></div>
         </div>
         <div class="hud-center" id="hud-center"></div>
         <div class="hud-right">
@@ -139,6 +140,11 @@
       </div>
       <div class="hud-speed"><span id="hud-speed">0</span><small data-i18n="kmh"></small></div>
       <div id="popups"></div>
+      <div id="hud-hint"></div>
+      <div id="abilities">
+        <div class="ab" id="ab-jump"><span class="ab-ring"></span><b>Space</b><span data-i18n="jump"></span></div>
+        <div class="ab" id="ab-fly"><span class="ab-ring"></span><b>F</b><span data-i18n="fly"></span></div>
+      </div>
       <div id="touch-controls">
         <div class="tc-left">
           <button class="tc tc-steer" data-ctl="left">◀</button>
@@ -146,8 +152,14 @@
         </div>
         <div class="tc-right">
           <button class="tc tc-horn" data-ctl="horn">📯</button>
-          <button class="tc tc-brake" data-ctl="brake" data-i18n="brakeShort"></button>
-          <button class="tc tc-gas" data-ctl="gas" data-i18n="gasShort"></button>
+          <div class="tc-col">
+            <button class="tc tc-ability" id="tc-jump" data-ctl="jump"><span class="ab-icon">▲</span><span class="ab-label" data-i18n="jump"></span></button>
+            <button class="tc tc-brake" data-ctl="brake" data-i18n="brakeShort"></button>
+          </div>
+          <div class="tc-col">
+            <button class="tc tc-ability" id="tc-fly" data-ctl="fly"><span class="ab-icon">✈</span><span class="ab-label" data-i18n="fly"></span></button>
+            <button class="tc tc-gas" data-ctl="gas" data-i18n="gasShort"></button>
+          </div>
         </div>
       </div>
     </section>

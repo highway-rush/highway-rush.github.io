@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { World } from './world.js';
 import { Traffic } from './traffic.js';
-import { Player } from './player.js';
+import { Player, FLY_MIN_ENERGY } from './player.js';
+import { AirSystem } from './air.js';
 import { LOCATIONS } from './locations.js';
 import { createMode } from './modes.js';
 import { carById } from './cars.js';
@@ -20,6 +21,7 @@ export class Game {
     this.world = new World(this.scene);
     this.traffic = new Traffic(this.scene);
     this.player = new Player(this.scene);
+    this.air = new AirSystem(this.scene);
     this.state = 'menu';
     this.envKey = '';
     this.time = 0;
@@ -55,6 +57,9 @@ export class Game {
     this.state = 'menu';
     this.buildEnvironment(locId, false);
     this.player.root.visible = false;
+    this.player.groundShadow.visible = false;
+    this.air.reset();
+    this.audio.setFly(0);
     this.demo = { x: 100, z: 0, speed: 24, length: 0, width: 0 };
     this.world.resetPosition(0);
     this.traffic.reset(0);
@@ -74,12 +79,17 @@ export class Game {
     this.buildEnvironment(locId, this.mode.twoWay);
     this.player.setCar(carDef, color, this.quality === 'high');
     this.player.root.visible = true;
+    this.player.groundShadow.visible = true;
     this.player.reset(this.mode.startX, 70);
+    this.air.reset();
+    this.input.releaseTouch();
     this.world.resetPosition(this.player.z);
     this.traffic.reset(this.player.z);
     this.mode.setup(this);
     this.score = 0; this.distance = 0; this.combo = 0; this.comboT = 0; this.nearMisses = 0;
     this.runTime = 0; this.shake = 0; this.crashT = 0;
+    this.jumps = 0; this.flyTime = 0; this.jumpOverCount = 0; this.lowWarnT = 0;
+    this.tutorialT = 0;
     this.state = 'playing';
     this.camera.position.set(this.player.x, 3.4, this.player.z + 8);
     this.audio.setSiren(this.mode.siren);
@@ -101,6 +111,7 @@ export class Game {
     this.state = 'paused';
     this.audio.setEngine(false);
     this.audio.setSiren(false);
+    this.audio.setFly(0);
     this.input.releaseTouch();
     this.ui.show('pause');
   }
@@ -138,42 +149,112 @@ export class Game {
     const p = this.player;
     const inp = this.input.read();
     if (inp.horn) this.audio.horn();
+    // Прыжок и полёт
+    if (inp.jump) {
+      if (p.jump()) { this.jumps++; this.audio.jump(); this.tutorialDone('jump'); }
+      else if (p.airMode === 'ground') this.audio.denied();
+    }
+    if (inp.fly) {
+      const r = p.toggleFly();
+      if (r === 'on') this.tutorialDone('fly');
+      else if (r === 'noenergy') { this.audio.denied(); this.ui.popup(t('noEnergy'), 'blue'); }
+    }
     const ev = p.update(dt, inp, this.loc.grip);
     if (ev.scrape) this.audio.scrape();
+    if (ev.wingsOpen) this.audio.wings();
+    if (ev.land) { this.audio.land(ev.land.hard); this.shake = Math.max(this.shake, 0.12 + ev.land.hard * 0.15); }
+    if (ev.energyOut) this.ui.popup(t('lowEnergy'), 'blue');
     this.runTime += dt;
     this.distance = -p.z;
+    if (p.flying) this.flyTime += dt;
     this.traffic.update(dt, p, this.distance, this.mode.siren);
 
-    // Столкновения и «близкие обгоны»
+    // Столкновения, «близкие обгоны» и прыжки через машины.
+    // Столкновение — только если машины реально пересекаются и по высоте: над машиной можно пролететь,
+    // а приземление на крышу — авария.
+    let overNow = 0;
     for (const v of this.traffic.active) {
       const dx = Math.abs(v.x - p.x), dz = Math.abs(v.z - p.z);
-      if (dx < (v.width + p.width) / 2 - 0.12 && dz < (v.length + p.length) / 2 - 0.15) {
+      const lowEnough = p.y < (v.height || 1.5) - 0.15;
+      if (lowEnough && dx < (v.width + p.width) / 2 - 0.12 && dz < (v.length + p.length) / 2 - 0.15) {
         return this.onCrash(v);
       }
       const rel = v.z - p.z;
-      if (!v.nearDone && Math.sign(rel) !== Math.sign(v.prevRel) && v.prevRel !== 0) {
-        const gap = dx - (v.width + p.width) / 2;
-        if (gap < 1.1 && this.speedKmh > 60) this.onNearMiss();
+      if (Math.sign(rel) !== Math.sign(v.prevRel) && v.prevRel !== 0) {
+        const lateral = dx - (v.width + p.width) / 2;
+        if (p.airMode === 'jump' && lateral < 0.3 && !v.overDone) { v.overDone = true; overNow++; }
+        else if (!v.nearDone && p.y < 0.6 && lateral < 1.1 && this.speedKmh > 60) this.onNearMiss();
         v.nearDone = true;
       }
       v.prevRel = rel;
     }
+    if (overNow) this.onJumpOver(overNow);
 
-    // Очки: только быстрее 50 км/ч, и чем быстрее — тем больше
+    // Воздушные препятствия и батарейки
+    const air = this.air.update(dt, this);
+    if (air.hit) return this.onCrash(null);
+    for (let i = 0; i < air.pickups; i++) this.onBattery();
+
+    // Очки: только быстрее 50 км/ч, и чем быстрее — тем больше. В полёте ×1.5
     const kmh = this.speedKmh;
-    if (kmh > 50) this.score += (kmh - 50) * 0.5 * dt * (1 + this.combo * 0.5) * this.mode.scoreMultiplier(this);
+    if (kmh > 50) this.score += (kmh - 50) * 0.5 * dt * (1 + this.combo * 0.5) * this.mode.scoreMultiplier(this) * (p.flying ? 1.5 : 1);
     if (this.combo > 0) {
       this.comboT -= dt;
       if (this.comboT <= 0) this.combo = 0;
     }
+
+    // Предупреждение о низкой энергии в полёте
+    if (p.airMode === 'fly' && p.energy < 0.2) {
+      this.lowWarnT -= dt;
+      if (this.lowWarnT <= 0) { this.audio.lowEnergy(); this.lowWarnT = 0.7; }
+    } else this.lowWarnT = 0;
 
     const end = this.mode.update(dt, this);
     if (this.mode.siren) p.updateLightbar(this.time);
     this.world.update(dt, p.z, p.speed, this.camera);
     this.updateCamera(dt);
     this.audio.setEngine(true, p.speed / p.phys.maxSpeed, inp.gas);
+    this.audio.setFly(p.airMode === 'fly' ? 1 : p.airMode === 'glide' ? 0.35 : 0, p.speed / p.phys.maxSpeed);
+    this.updateTutorial(dt);
     this.ui.updateHud(this);
     if (end) this.finishRun(end);
+  }
+
+  onJumpOver(count) {
+    this.jumpOverCount += count;
+    const bonus = 250 * count * (count > 1 ? 2 : 1);
+    this.score += bonus;
+    this.player.addEnergy(0.12 * count);
+    this.ui.popup(count > 1 ? t('jumpOverN', { c: count, n: bonus }) : t('jumpOver', { n: bonus }), 'gold');
+    this.audio.jumpOver();
+  }
+
+  onBattery() {
+    this.player.addEnergy(0.3);
+    this.score += 100;
+    this.ui.popup(t('battery', { n: 30 }), 'blue');
+    this.audio.battery();
+  }
+
+  // ---------- Обучение при первом запуске ----------
+  updateTutorial(dt) {
+    const tut = storage.get().tutorial;
+    this.tutorialT += dt;
+    let hint = null;
+    const touch = this.input.isTouch;
+    if (!tut.jump && this.tutorialT > 2 && this.player.airMode === 'ground') hint = 'jump';
+    else if (tut.jump && !tut.fly && this.tutorialT > 2 && this.player.energy >= FLY_MIN_ENERGY && this.player.airMode === 'ground') hint = 'fly';
+    if (hint === 'jump') this.ui.setHint(t(touch ? 'tutJumpTouch' : 'tutJumpKey'), '', 'jump');
+    else if (hint === 'fly') this.ui.setHint(t(touch ? 'tutFlyTouch' : 'tutFlyKey'), t('tutFlyMore'), 'fly');
+    else this.ui.setHint(null);
+  }
+
+  tutorialDone(key) {
+    const tut = storage.get().tutorial;
+    if (tut[key]) return;
+    tut[key] = true;
+    this.tutorialT = 0.5; // небольшая пауза перед следующей подсказкой
+    storage.save();
   }
 
   onNearMiss() {
@@ -182,6 +263,7 @@ export class Game {
     this.comboT = 4;
     const bonus = 100 * this.combo;
     this.score += bonus;
+    this.player.addEnergy(0.08);
     this.ui.popup(`${t('nearMiss')} +${bonus}`);
     this.audio.nearMiss();
   }
@@ -191,10 +273,12 @@ export class Game {
     this.state = 'crashing';
     this.crashT = 0;
     this.shake = 0.8;
-    const otherAlong = v.dir === -1 ? v.speed : 0;
+    const otherAlong = v && v.dir === -1 ? v.speed : 0;
     p.crash(otherAlong);
-    v.speed = 0; v.desired = 0;
+    if (v) { v.speed = 0; v.desired = 0; }
+    this.ui.setHint(null);
     this.audio.crash();
+    this.audio.setFly(0);
     this.audio.setEngine(false);
     this.audio.setSiren(false);
     this.ui.flash();
@@ -214,6 +298,8 @@ export class Game {
     this.state = 'results';
     this.audio.setEngine(false);
     this.audio.setSiren(false);
+    this.audio.setFly(0);
+    this.ui.setHint(null);
     const score = Math.floor(this.score);
     const coins = Math.floor(score / 10);
     storage.addCoins(coins);
@@ -225,6 +311,8 @@ export class Game {
       distance: this.distance,
       maxSpeed: Math.round(this.player.maxSpeedReached * KMH),
       nearMisses: this.nearMisses,
+      jumps: this.jumps,
+      flyTime: this.flyTime,
       best: storage.bestScore(this.modeId),
       extra: this.mode.extraResults(),
     });
@@ -234,13 +322,15 @@ export class Game {
     const p = this.player, cam = this.camera;
     const ratio = Math.min(1, p.speed / 80);
     const k = 1 - Math.exp(-6 * dt);
+    const fb = p.flyBlend; // 0 на земле, 1 в полёте — камера плавно поднимается и отдаляется
+    const py = p.y || 0;
     cam.position.x += (p.x * 0.75 - cam.position.x) * k;
-    cam.position.y += (3.3 + ratio * 0.5 - cam.position.y) * k;
-    cam.position.z = p.z + 7.4 + ratio * 1.4;
+    cam.position.y += (3.3 + ratio * 0.5 + py * (0.6 + fb * 0.25) + fb * 2.2 - cam.position.y) * k;
+    cam.position.z = p.z + 7.4 + ratio * 1.4 + fb * 3.5;
     const fov = 60 + ratio * 16;
     cam.fov += (fov - cam.fov) * k;
     cam.updateProjectionMatrix();
-    this.camTarget.set(p.x * 0.85, 1.1, p.z - 12);
+    this.camTarget.set(p.x * 0.85, 1.1 + py * 0.85, p.z - 12);
     cam.lookAt(this.camTarget);
     cam.rotateZ(-p.vx * 0.004);
     // Тряска: на большой скорости и при ударе

@@ -524,3 +524,71 @@ export function disposeGroup(g) {
   if (!g) return;
   g.traverse((m) => { if (m.isMesh && m.geometry) m.geometry.dispose(); });
 }
+
+// =====================================================================
+//                 КРЫЛЬЯ И РЕАКТИВНОЕ ПЛАМЯ (для полёта)
+// =====================================================================
+// Крылья раскрываются анимацией: t = 0 — сложены (подняты и уменьшены), t = 1 — раскрыты.
+export function buildWings(W, L, H) {
+  const group = new THREE.Group();
+  const span = 2.7, root = 1.7, tip = 0.8;
+  const mountY = Math.max(0.6, H * 0.5);
+  const makeSide = (s) => {
+    const b = new Builder();
+    const rz = -s * Math.PI / 2; // ось «высоты» трапеции превращается в размах крыла
+    // Основная плоскость крыла (стреловидная)
+    b.add(taperGeo(0.12, 0.05, span, root, tip, 0.45), 0xf3f5f9, 'lit', s * span / 2, 0, 0.1, 1, 1, 1, 0, 0, rz);
+    // Розовая полоса вдоль передней кромки
+    b.add(taperGeo(0.14, 0.07, span * 0.96, 0.25, 0.14, 0.3), 0xff4fa3, 'lit', s * span / 2, 0.01, -root / 2 + 0.2, 1, 1, 1, 0, 0, rz);
+    // Мотор-гондола под крылом
+    b.cyl(0.2, 1.2, s * span * 0.45, -0.22, 0.15, 0x3a3f4a, 'lit', 8, Math.PI / 2, 0, 0);
+    b.cyl(0.14, 0.05, s * span * 0.45, -0.22, 0.76, 0x7ad7ff, 'glow', 8, Math.PI / 2, 0, 0);
+    // Навигационный огонёк на конце крыла (слева красный, справа зелёный)
+    b.box(0.16, 0.12, 0.4, s * (span - 0.05), 0.02, 0.35, s < 0 ? 0xff2a2a : 0x2aff6a, 'glow');
+    const wing = b.toGroup({});
+    const pivot = new THREE.Group();
+    pivot.position.set(s * W * 0.42, mountY, 0.15);
+    pivot.add(wing);
+    group.add(pivot);
+    return pivot;
+  };
+  const left = makeSide(-1), right = makeSide(1);
+
+  // Пламя из «сопла» сзади — два вложенных конуса со светящимся материалом
+  const flame = new THREE.Group();
+  const outerMat = new THREE.MeshBasicMaterial({ color: 0xff6a1a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+  const innerMat = new THREE.MeshBasicMaterial({ color: 0xfff1a0, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
+  const coneGeo = new THREE.ConeGeometry(1, 1, 10, 1, true).rotateX(Math.PI / 2).translate(0, 0, 0.5);
+  const outer = new THREE.Mesh(coneGeo, outerMat); outer.scale.set(0.42, 0.42, 2.2);
+  const inner = new THREE.Mesh(coneGeo, innerMat); inner.scale.set(0.22, 0.22, 1.3);
+  const nozzle = new THREE.Mesh(G.cyl8, new THREE.MeshLambertMaterial({ color: 0x2a2d33 }));
+  nozzle.scale.set(0.34, 0.4, 0.34); nozzle.rotation.x = Math.PI / 2; nozzle.position.z = -0.15;
+  flame.add(nozzle, outer, inner);
+  flame.position.set(0, Math.max(0.45, H * 0.32), L / 2 + 0.15);
+  group.add(flame);
+
+  const result = {
+    group, left, right, flame,
+    // t — степень раскрытия (0..1), time — время для мерцания, flaming — включено ли пламя
+    update(t, time, flaming) {
+      const e = t * t * (3 - 2 * t); // плавное начало и конец
+      const fold = 1.35 * (1 - e);
+      right.rotation.z = fold - 0.06 * e;
+      left.rotation.z = -fold + 0.06 * e;
+      const sc = 0.3 + 0.7 * e;
+      left.scale.setScalar(sc); right.scale.setScalar(sc);
+      group.visible = t > 0.01;
+      flame.visible = flaming && t > 0.6;
+      if (flame.visible) {
+        const f = 0.8 + Math.sin(time * 47) * 0.12 + Math.random() * 0.15;
+        outer.scale.z = 2.2 * f; inner.scale.z = 1.3 * f;
+      }
+    },
+    dispose() {
+      group.traverse((m) => { if (m.isMesh && m.geometry !== G.cyl8) m.geometry.dispose(); });
+      outerMat.dispose(); innerMat.dispose(); nozzle.material.dispose();
+    },
+  };
+  result.update(0, 0, false);
+  return result;
+}

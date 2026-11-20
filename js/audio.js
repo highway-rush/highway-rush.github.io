@@ -26,6 +26,7 @@ export class Audio {
       this.noiseBuf = this.makeNoise();
       this.buildEngine();
       this.buildSiren();
+      this.buildFlyHum();
       this.startMusic();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -116,6 +117,29 @@ export class Audio {
     this.sirGain.gain.setTargetAtTime(on ? 0.06 : 0, this.ctx.currentTime, 0.1);
   }
 
+  // ---------- Гул полёта (реактивный двигатель) ----------
+  buildFlyHum() {
+    const c = this.ctx;
+    this.flySrc = c.createBufferSource(); this.flySrc.buffer = this.noiseBuf; this.flySrc.loop = true;
+    this.flyFilter = c.createBiquadFilter(); this.flyFilter.type = 'bandpass'; this.flyFilter.frequency.value = 300; this.flyFilter.Q.value = 1.2;
+    this.flyOsc = c.createOscillator(); this.flyOsc.type = 'triangle'; this.flyOsc.frequency.value = 110;
+    const og = c.createGain(); og.gain.value = 0.25;
+    this.flyGain = c.createGain(); this.flyGain.gain.value = 0;
+    this.flySrc.connect(this.flyFilter).connect(this.flyGain);
+    this.flyOsc.connect(og).connect(this.flyGain);
+    this.flyGain.connect(this.sfx);
+    this.flySrc.start(); this.flyOsc.start();
+  }
+
+  // level: 0 — выкл, 1 — полёт с пламенем, 0.4 — планирование
+  setFly(level, ratio = 0) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.flyGain.gain.setTargetAtTime(level * 0.35, t, 0.15);
+    this.flyFilter.frequency.setTargetAtTime(250 + ratio * 900 + level * 300, t, 0.2);
+    this.flyOsc.frequency.setTargetAtTime(90 + ratio * 70, t, 0.2);
+  }
+
   // ---------- Короткие эффекты ----------
   tone(type, freq, dur, vol, freqEnd, delay = 0) {
     if (!this.ctx) return;
@@ -160,6 +184,26 @@ export class Audio {
     this.tone('sine', 880, 0.15, 0.08, 1320, 0.05);
   }
   scrape() { this.noise(0.25, 0.25, 'bandpass', 2500, 1200); }
+  jump() {
+    this.tone('square', 180, 0.25, 0.08, 520);
+    this.noise(0.3, 0.25, 'bandpass', 500, 2500);
+  }
+  land(hard = 1) {
+    this.tone('sine', 90, 0.35, 0.3 + hard * 0.3, 40);
+    this.noise(0.3, 0.2 + hard * 0.25, 'lowpass', 1200, 150);
+    this.tone('triangle', 260, 0.18, 0.06, 140, 0.05); // «пружина» подвески
+  }
+  wings() {
+    // Механическое раскрытие: шелест + щелчки
+    this.noise(0.5, 0.25, 'bandpass', 900, 3000);
+    this.tone('square', 220, 0.08, 0.06, 0, 0.0);
+    this.tone('square', 330, 0.08, 0.06, 0, 0.18);
+    this.tone('square', 440, 0.1, 0.07, 0, 0.36);
+  }
+  jumpOver() { [660, 880, 1320].forEach((f, i) => this.tone('triangle', f, 0.12, 0.09, 0, i * 0.06)); }
+  battery() { [784, 1047, 1319, 1568, 2093].forEach((f, i) => this.tone('sine', f, 0.12, 0.09, 0, i * 0.045)); }
+  lowEnergy() { this.tone('square', 440, 0.09, 0.07); this.tone('square', 330, 0.12, 0.07, 0, 0.11); }
+  denied() { this.tone('square', 150, 0.15, 0.08, 110); }
   coin() { this.tone('square', 988, 0.08, 0.06); this.tone('square', 1319, 0.2, 0.06, 0, 0.07); }
   click() { this.tone('triangle', 660, 0.06, 0.08); }
   checkpoint() { [523, 659, 784, 1047].forEach((f, i) => this.tone('triangle', f, 0.18, 0.12, 0, i * 0.08)); }

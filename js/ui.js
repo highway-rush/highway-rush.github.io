@@ -4,6 +4,7 @@ import * as storage from './storage.js';
 import { CARS, PAINTS, PAINT_PRICE, carById } from './cars.js';
 import { LOCATIONS, LOCATION_IDS } from './locations.js';
 import { MODE_IDS, MODE_ICONS, MODE_COLORS } from './modes.js';
+import { JUMP_COOLDOWN, FLY_MIN_ENERGY } from './player.js';
 
 const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -303,6 +304,55 @@ export class UI {
     this.setText('hud-combo', g.combo > 0 ? t('combo', { n: 1 + g.combo * 0.5 }) : '');
     const center = g.mode.hud(g);
     if (this.hudCache.center !== center) { this.hudCache.center = center; $('#hud-center').innerHTML = center; }
+    this.updateAbilities(g.player);
+  }
+
+  // Шкала энергии и состояние кнопок «Прыжок» / «Полёт» (кольцо перезарядки, неактивный вид)
+  updateAbilities(p) {
+    const c = this.hudCache;
+    const en = Math.round(p.energy * 100);
+    if (c.en !== en) { c.en = en; $('#hud-energy').style.width = en + '%'; }
+    const flying = p.airMode === 'fly';
+    const enState = (flying ? 'flying ' : '') + (flying && p.energy < 0.2 ? 'low' : '');
+    if (c.enState !== enState) { c.enState = enState; $('#hud-energy-box').className = 'hud-energy ' + enState; }
+
+    const cd = p.airMode === 'ground' ? Math.ceil((p.jumpCD / JUMP_COOLDOWN) * 40) / 40 : 1;
+    const jumpReady = p.canJump;
+    const jKey = cd + '|' + jumpReady;
+    if (c.jump !== jKey) {
+      c.jump = jKey;
+      for (const el of [$('#ab-jump'), $('#tc-jump')]) {
+        el.style.setProperty('--cd', jumpReady ? 0 : cd);
+        el.classList.toggle('off', !jumpReady);
+        el.classList.toggle('ready', jumpReady);
+      }
+    }
+    const flyOk = flying || p.energy >= FLY_MIN_ENERGY;
+    const fKey = flyOk + '|' + flying;
+    if (c.fly !== fKey) {
+      c.fly = fKey;
+      for (const el of [$('#ab-fly'), $('#tc-fly')]) {
+        el.classList.toggle('off', !flyOk);
+        el.classList.toggle('active', flying);
+        el.classList.toggle('ready', flyOk && !flying);
+      }
+    }
+  }
+
+  // Подсказка обучения; target — какую кнопку подсветить ('jump' / 'fly')
+  setHint(text, sub = '', target = null) {
+    const key = text ? text + '|' + sub : '';
+    if (this.hudCache.hint === key) return;
+    this.hudCache.hint = key;
+    const el = $('#hud-hint');
+    el.classList.toggle('show', !!text);
+    el.innerHTML = '';
+    if (text) {
+      el.textContent = text;
+      if (sub) { const sm = document.createElement('small'); sm.textContent = sub; el.appendChild(sm); }
+    }
+    document.querySelectorAll('.hint-pulse').forEach((b) => b.classList.remove('hint-pulse'));
+    if (target) [$('#ab-' + target), $('#tc-' + target)].forEach((b) => b.classList.add('hint-pulse'));
   }
 
   setOncoming(text) { this.setText('hud-oncoming', text); }
@@ -333,6 +383,7 @@ export class UI {
       ['score', fmt(r.score), 'wide'],
       ['distance', dist], ['maxSpeed', r.maxSpeed + ' ' + t('kmh')],
       ['nearMisses', r.nearMisses], ['coinsEarned', '+' + fmt(r.coins)],
+      ['jumps', r.jumps], ['flyTime', r.flyTime.toFixed(1) + ' ' + t('sec')],
       ...r.extra.map(([k, v]) => [k, v]),
       ['best', fmt(r.best)],
     ];

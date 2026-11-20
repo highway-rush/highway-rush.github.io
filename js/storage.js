@@ -11,6 +11,8 @@ function defaults() {
     settings: { music: 50, sfx: 80, quality: 'high', tilt: false, lang: null },
     records: {},           // режим -> [{ score, date, car, loc }]
     rotateDismissed: false,
+    tutorial: { jump: false, fly: false }, // показаны ли подсказки обучения
+    version: 2,
   };
 }
 
@@ -24,11 +26,24 @@ export function load() {
       const d = defaults();
       data = { ...d, ...parsed, settings: { ...d.settings, ...(parsed.settings || {}) } };
       if (!Array.isArray(data.owned) || !data.owned.includes('sedan')) data.owned = ['sedan', ...(data.owned || [])];
+      data.tutorial = { ...d.tutorial, ...(parsed.tutorial || {}) };
+      migrate(parsed);
     }
   } catch (e) {
     data = defaults();
   }
   return data;
+}
+
+// Перенос старых сохранений на новую версию
+function migrate(parsed) {
+  if ((parsed.version || 1) < 2) {
+    // Стартовая машина теперь розовая. Если у игрока сохранён старый синий цвет по умолчанию,
+    // убираем его — тогда будет показан новый розовый цвет.
+    if (data.colors && data.colors.sedan === 0x2f7cf6) delete data.colors.sedan; // 0x2f7cf6 — старый синий
+    data.version = 2;
+    save();
+  }
 }
 
 export function save() {

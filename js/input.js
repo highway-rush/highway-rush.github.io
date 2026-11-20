@@ -3,10 +3,12 @@
 export class Input {
   constructor() {
     this.keys = new Set();
-    this.touch = { left: false, right: false, gas: false, brake: false, horn: false };
+    this.touch = { left: false, right: false, gas: false, brake: false, horn: false, jump: false, fly: false };
     this.tiltEnabled = false;
     this.tiltValue = 0;
     this.hornPressed = false; // флаг «нажали гудок» (сбрасывается после чтения)
+    this.jumpPressed = false; // то же для прыжка
+    this.flyPressed = false;  // и для полёта (вкл/выкл)
     this.onPause = null;
     this.isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     if (this.isTouch) document.body.classList.add('touch');
@@ -17,6 +19,8 @@ export class Input {
       if (e.repeat) return;
       this.keys.add(k);
       if (k === 'KeyH') this.hornPressed = true;
+      if (k === 'Space') this.jumpPressed = true;
+      if (k === 'KeyF' || k === 'ShiftLeft' || k === 'ShiftRight') this.flyPressed = true;
       if ((k === 'Escape' || k === 'KeyP') && this.onPause) this.onPause();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
@@ -36,13 +40,16 @@ export class Input {
         pointers.add(e.pointerId);
         try { btn.releasePointerCapture(e.pointerId); } catch (_) { /* для перехода пальца между кнопками */ }
         if (ctl === 'horn') this.hornPressed = true;
+        if (ctl === 'jump') this.jumpPressed = true;
+        if (ctl === 'fly') this.flyPressed = true;
         set();
       });
       const up = (e) => { pointers.delete(e.pointerId); set(); };
       btn.addEventListener('pointerup', up);
       btn.addEventListener('pointercancel', up);
       btn.addEventListener('pointerleave', up);
-      btn.addEventListener('pointerenter', (e) => { if (e.buttons || e.pointerType === 'touch') { pointers.add(e.pointerId); set(); } });
+      // Палец можно «перетащить» на руль/газ/тормоз; прыжок и полёт — только отдельным нажатием
+      btn.addEventListener('pointerenter', (e) => { if ((e.buttons || e.pointerType === 'touch') && ctl !== 'jump' && ctl !== 'fly' && ctl !== 'horn') { pointers.add(e.pointerId); set(); } });
       btn.addEventListener('contextmenu', (e) => e.preventDefault());
     });
 
@@ -66,6 +73,7 @@ export class Input {
 
   releaseTouch() {
     for (const k in this.touch) this.touch[k] = false;
+    this.jumpPressed = this.flyPressed = this.hornPressed = false;
     document.querySelectorAll('[data-ctl].pressed').forEach((b) => b.classList.remove('pressed'));
   }
 
@@ -102,13 +110,13 @@ export class Input {
       steer = Math.abs(v) < dz ? 0 : (v - Math.sign(v) * dz) / (1 - dz);
       analog = true;
     }
-    const horn = this.hornPressed;
-    this.hornPressed = false;
+    const horn = this.hornPressed, jump = this.jumpPressed, fly = this.flyPressed;
+    this.hornPressed = this.jumpPressed = this.flyPressed = false;
     return {
       steer, analog,
       gas: k.has('ArrowUp') || k.has('KeyW') || t.gas,
-      brake: k.has('ArrowDown') || k.has('KeyS') || k.has('Space') || t.brake,
-      horn,
+      brake: k.has('ArrowDown') || k.has('KeyS') || t.brake,
+      horn, jump, fly,
       hornHeld: k.has('KeyH') || t.horn,
     };
   }

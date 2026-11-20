@@ -31,9 +31,9 @@ export class Traffic {
       v.group.visible = false;
       scene.add(v.group);
       this.pool.push({
-        type, mesh: v.group, length: v.length, width: v.width, blinkL: v.blinkL, blinkR: v.blinkR,
+        type, mesh: v.group, length: v.length, width: v.width, height: v.height, blinkL: v.blinkL, blinkR: v.blinkR,
         lane: 0, x: 0, z: 0, speed: 0, desired: 0, dir: -1, targetX: 0, blinkT: 0, blinkSide: 0,
-        changing: false, cooldown: 0, prevRel: 0, nearDone: false, active: false,
+        changing: false, cooldown: 0, prevRel: 0, nearDone: false, overDone: false, active: false,
       });
     }
   }
@@ -85,7 +85,7 @@ export class Traffic {
     if (v.dir === 1) v.desired = rnd(60, 95) * KMH;
     else v.desired = (slow ? rnd(50, 75) : rnd(60, 100) + (laneIdx === (this.twoWay ? 2 : 0) ? 10 : 0)) * KMH;
     v.speed = v.desired;
-    v.blinkT = 0; v.changing = false; v.cooldown = rnd(2, 6); v.nearDone = false;
+    v.blinkT = 0; v.changing = false; v.cooldown = rnd(2, 6); v.nearDone = false; v.overDone = false;
     v.prevRel = v.z - playerZ;
     v.mesh.rotation.y = v.dir === 1 ? Math.PI : 0;
     v.mesh.position.set(v.x, 0, v.z);
@@ -111,7 +111,8 @@ export class Traffic {
       if (o.changing) check(o.targetX, o.z, o.length, o.speed);
     }
     for (const o of this.extras) check(o.x, o.z, o.length, o.speed);
-    if (player) check(player.x, player.z, player.length, v.dir === -1 ? player.speed : -player.speed);
+    // Игрок в воздухе — не препятствие для машин внизу
+    if (player && !(player.y > 1)) check(player.x, player.z, player.length, v.dir === -1 ? player.speed : -player.speed);
     return { gap: best, speed: bestSpeed };
   }
 

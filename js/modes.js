@@ -144,7 +144,7 @@ class PoliceMode extends BaseMode {
     this.mesh.rotation.y = -Math.sign(dx) * Math.min(0.15, Math.abs(dx) * 0.08);
 
     // Столкновение с нарушителем — не авария, а толчок
-    if (Math.abs(p.x - s.x) < (p.width + s.width) / 2 && Math.abs(p.z - s.z) < (p.length + s.length) / 2) {
+    if (p.y < 1.2 && Math.abs(p.x - s.x) < (p.width + s.width) / 2 && Math.abs(p.z - s.z) < (p.length + s.length) / 2) {
       p.speed = Math.min(p.speed, s.speed * 0.9);
       p.z = s.z + (p.length + s.length) / 2 + 0.05;
     }
