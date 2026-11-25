@@ -6,6 +6,7 @@ import { Audio } from './audio.js';
 import { Input } from './input.js';
 import { UI } from './ui.js';
 import { Game } from './game.js';
+import { OnlineUI } from './net/online-ui.js';
 
 const save = storage.load();
 setLang(save.settings.lang || detectLang());
@@ -20,9 +21,12 @@ const input = new Input();
 const ui = new UI(audio, input);
 const game = new Game(renderer, ui, audio, input);
 ui.setGame(game);
+const online = new OnlineUI(ui, game, audio, input);
+ui.setOnline(online);
 game.applyQuality();
 input.onPause = () => {
-  if (game.state === 'playing') game.pause();
+  if (game.state === 'online') online.toggleRaceMenu();
+  else if (game.state === 'playing') game.pause();
   else if (game.state === 'paused' && ui.current === 'pause') game.resume();
 };
 // Наклон включался раньше — на Android включаем сразу; на iPhone нужно нажать в настройках ещё раз
@@ -51,6 +55,16 @@ document.addEventListener('visibilitychange', () => {
 
 game.startDemo('highway');
 ui.show('menu');
+
+// Ссылка-приглашение вида ...?room=KZ7F2 сразу открывает вход в комнату
+const params = new URLSearchParams(location.search);
+const roomFromLink = params.get('room');
+if (roomFromLink) {
+  params.delete('room');
+  const q = params.toString();
+  history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash);
+  online.open(roomFromLink);
+}
 
 // Игровой цикл
 const clock = new THREE.Clock();

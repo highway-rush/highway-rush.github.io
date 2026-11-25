@@ -14,6 +14,7 @@ const SCREENS = {
   loading: '#screen-loading', menu: '#screen-menu', modes: '#screen-modes', locations: '#screen-locations',
   garage: '#screen-garage', records: '#screen-records', settings: '#screen-settings',
   hud: '#hud', pause: '#screen-pause', results: '#screen-results',
+  online: '#screen-online', lobby: '#screen-lobby', 'online-results': '#screen-online-results',
 };
 
 export class UI {
@@ -48,6 +49,7 @@ export class UI {
   }
 
   setGame(game) { this.game = game; }
+  setOnline(online) { this.online = online; }
 
   // ---------- Навигация ----------
   show(name, push = false) {
@@ -77,6 +79,7 @@ export class UI {
     this.hudCache = {};
     $('#popups').innerHTML = '';
     this.setOncoming('');
+    $('#hud').classList.toggle('online', !!this.game.online);
     this.show('hud');
   }
 
@@ -95,7 +98,7 @@ export class UI {
         this.lastLoc = el.dataset.id;
         this.stack = [];
         return g.startRun(this.chosenMode, el.dataset.id);
-      case 'pause': return g.pause();
+      case 'pause': return g.online ? this.online.toggleRaceMenu() : g.pause();
       case 'resume': return g.resume();
       case 'restart': return g.restart();
       case 'menu': g.startDemo(this.lastLoc); return this.show('menu');
@@ -113,6 +116,8 @@ export class UI {
       case 'reset':
         if (confirm(t('resetConfirm'))) { storage.resetAll(); this.garageIndex = 0; this.renderSettings(); this.updateCoins(); }
         return;
+      default:
+        if (this.online) this.online.action(a, el);
     }
   }
 

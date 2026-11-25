@@ -1,0 +1,95 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": "auth != null && $code.matches(/^[A-HJ-NP-Z2-9]{5}$/)",
+        ".write": "auth != null && !newData.exists() && (data.child('players/' + auth.uid).exists() || !data.child('players').exists() || data.child('meta/createdAt').val() < now - 7200000)",
+
+        "meta": {
+          ".write": "auth != null && newData.exists() && $code.matches(/^[A-HJ-NP-Z2-9]{5}$/) && ((!data.exists() && newData.child('host').val() === auth.uid) || (data.exists() && data.child('host').val() === auth.uid && newData.child('host').val() === auth.uid) || (data.exists() && data.parent().child('players/' + auth.uid).exists() && !data.parent().child('players/' + data.child('host').val()).exists() && newData.child('host').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['host', 'createdAt', 'status', 'loc', 'len', 'round', 'seed', 'startAt'])",
+          "host": { ".validate": "newData.isString() && newData.val().length <= 128" },
+          "createdAt": { ".validate": "newData.isNumber() && (data.exists() ? newData.val() === data.val() : newData.val() <= now)" },
+          "status": { ".validate": "newData.isString() && newData.val().matches(/^(lobby|race|results)$/)" },
+          "loc": { ".validate": "newData.isString() && newData.val().matches(/^(highway|snow|city|rain|steppe)$/)" },
+          "len": { ".validate": "newData.val() === 3 || newData.val() === 5 || newData.val() === 10" },
+          "round": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 1000000" },
+          "seed": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2147483647" },
+          "startAt": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000" },
+          "racers": {
+            "$uid": { ".validate": "newData.val() === true && $uid.length <= 128" }
+          },
+          "$other": { ".validate": false }
+        },
+
+        "slots": {
+          "$slot": {
+            ".write": "auth != null && $slot.matches(/^[0-3]$/) && ((!data.exists() && newData.val() === auth.uid && newData.parent().parent().child('meta').exists() && newData.parent().parent().child('meta/status').val() !== 'race') || (data.exists() && !newData.exists() && (data.val() === auth.uid || !data.parent().parent().child('players/' + data.val()).exists())))",
+            ".validate": "newData.isString()"
+          }
+        },
+
+        "players": {
+          "$uid": {
+            ".write": "auth != null && $uid === auth.uid",
+            ".validate": "newData.hasChildren(['name', 'car', 'color', 'ready', 'slot', 'joinedAt']) && newData.parent().parent().child('slots/' + newData.child('slot').val()).val() === auth.uid",
+            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 12" },
+            "car": { ".validate": "newData.isString() && newData.val().matches(/^(sedan|hatch|pickup|muscle|truck|police|sport|super)$/)" },
+            "color": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 16777215" },
+            "ready": { ".validate": "newData.isBoolean()" },
+            "slot": { ".validate": "newData.isNumber() && (newData.val() === 0 || newData.val() === 1 || newData.val() === 2 || newData.val() === 3)" },
+            "joinedAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "state": {
+          "$uid": {
+            ".write": "auth != null && $uid === auth.uid && (!newData.exists() || data.parent().parent().child('players/' + auth.uid).exists())",
+            ".validate": "newData.hasChildren(['x', 'z', 'y', 's', 'v', 'r', 'f', 'e', 'w', 't'])",
+            "x": { ".validate": "newData.isNumber() && newData.val() >= -20 && newData.val() <= 20" },
+            "z": { ".validate": "newData.isNumber() && newData.val() >= -15000 && newData.val() <= 1000" },
+            "y": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50" },
+            "s": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 150" },
+            "v": { ".validate": "newData.isNumber() && newData.val() >= -50 && newData.val() <= 50" },
+            "r": { ".validate": "newData.isNumber() && newData.val() >= -1.5 && newData.val() <= 1.5" },
+            "f": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 63" },
+            "e": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+            "w": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+            "t": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "hits": {
+          "$to": {
+            "$from": {
+              ".write": "auth != null && $from === auth.uid && data.parent().parent().parent().child('players/' + auth.uid).exists()",
+              ".validate": "newData.hasChildren(['t', 'k']) && data.parent().parent().parent().child('players/' + $to).exists()",
+              "t": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+              "k": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1" },
+              "$other": { ".validate": false }
+            }
+          }
+        },
+
+        "results": {
+          "$uid": {
+            ".write": "auth != null && $uid === auth.uid && data.parent().parent().child('players/' + auth.uid).exists()",
+            ".validate": "newData.hasChildren(['round', 'fin', 'time', 'dist', 'pass'])",
+            "round": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 1000000" },
+            "fin": { ".validate": "newData.isBoolean()" },
+            "time": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600000" },
+            "dist": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20000" },
+            "pass": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

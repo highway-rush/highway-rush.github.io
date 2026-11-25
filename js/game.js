@@ -98,6 +98,7 @@ export class Game {
   }
 
   endMode() {
+    if (this.online) { this.online.dispose(); this.online = null; }
     if (this.mode) {
       this.mode.dispose(this);
       this.mode = null;
@@ -132,6 +133,7 @@ export class Game {
     if (this.state === 'menu') return this.updateDemo(dt);
     if (this.state === 'playing') return this.updatePlaying(dt);
     if (this.state === 'crashing') return this.updateCrashing(dt);
+    if (this.state === 'online' && this.online) return this.online.update(dt);
   }
 
   updateDemo(dt) {

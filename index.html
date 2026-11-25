@@ -35,6 +35,7 @@
         <div class="logo">HIGHWAY<span>RUSH</span></div>
         <div class="menu-buttons">
           <button class="btn btn-primary btn-big" data-action="play" data-i18n="play"></button>
+          <button class="btn btn-online" data-action="online"><span class="online-dot"></span><span data-i18n="online"></span></button>
           <button class="btn" data-action="garage" data-i18n="garage"></button>
           <button class="btn" data-action="records" data-i18n="records"></button>
           <button class="btn" data-action="settings" data-i18n="settings"></button>
@@ -122,6 +123,62 @@
       </div>
     </section>
 
+    <!-- ОНЛАЙН: ник, создать комнату, войти по коду -->
+    <section id="screen-online" class="screen">
+      <div class="screen-head">
+        <button class="btn btn-back" data-action="back">←</button>
+        <h2 data-i18n="online"></h2>
+      </div>
+      <div class="online-box">
+        <label class="field">
+          <span data-i18n="nickLabel"></span>
+          <input id="online-nick" type="text" maxlength="12" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
+        </label>
+        <button class="btn btn-primary" data-action="on-create" data-i18n="createRoom"></button>
+        <div class="or-sep"><span data-i18n="orJoin"></span></div>
+        <div class="join-row">
+          <input id="online-code" type="text" maxlength="5" placeholder="KZ7F2" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go">
+          <button class="btn" data-action="on-join" data-i18n="joinRoom"></button>
+        </div>
+        <div class="online-msg" id="online-msg" role="status"></div>
+        <p class="online-note" data-i18n="onlineNote"></p>
+      </div>
+    </section>
+
+    <!-- ЛОББИ КОМНАТЫ -->
+    <section id="screen-lobby" class="screen">
+      <div class="screen-head">
+        <button class="btn btn-back" data-action="on-leave">←</button>
+        <h2 data-i18n="lobby"></h2>
+      </div>
+      <div class="lobby-layout">
+        <div class="lobby-col">
+          <div class="room-code-box">
+            <small data-i18n="roomCode"></small>
+            <div class="room-code" id="lobby-code"></div>
+            <div class="room-code-btns">
+              <button class="btn btn-small" data-action="on-copy-code" data-i18n="copyCode"></button>
+              <button class="btn btn-small" data-action="on-share" data-i18n="shareLink"></button>
+            </div>
+          </div>
+          <div class="lobby-players" id="lobby-players"></div>
+        </div>
+        <div class="lobby-col">
+          <div class="lobby-settings">
+            <div class="ls-label" data-i18n="location"></div>
+            <div class="seg seg-wrap" id="lobby-loc"></div>
+            <div class="ls-label" data-i18n="trackLength"></div>
+            <div class="seg" id="lobby-len"></div>
+          </div>
+          <div class="lobby-actions">
+            <button class="btn" id="lobby-ready" data-action="on-ready"></button>
+            <button class="btn btn-primary" id="lobby-start" data-action="on-start" data-i18n="start"></button>
+          </div>
+          <div class="lobby-note" id="lobby-note"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- HUD -->
     <section id="hud" class="screen">
       <div class="hud-top">
@@ -139,6 +196,23 @@
         </div>
       </div>
       <div class="hud-speed"><span id="hud-speed">0</span><small data-i18n="kmh"></small></div>
+      <!-- Онлайн: место, прогресс трассы, расстояние до финиша -->
+      <div class="hud-race online-only">
+        <div class="race-place"><b id="race-place">1</b><small id="race-place-n">/2</small></div>
+        <div class="race-progress"><div class="rp-track" id="rp-track"><span class="rp-flag">🏁</span></div></div>
+        <div class="race-togo" id="race-togo"></div>
+      </div>
+      <div id="countdown" class="online-only"></div>
+      <div id="opp-arrows" class="online-only"></div>
+      <div id="race-wait" class="online-only"></div>
+      <div id="race-menu" class="online-only">
+        <div class="modal">
+          <h2 data-i18n="onlineRace"></h2>
+          <p class="online-note" data-i18n="raceNoPause"></p>
+          <button class="btn btn-primary" data-action="race-resume" data-i18n="resume"></button>
+          <button class="btn btn-danger" data-action="race-leave" data-i18n="leaveRace"></button>
+        </div>
+      </div>
       <div id="popups"></div>
       <div id="hud-hint"></div>
       <div id="abilities">
@@ -189,6 +263,20 @@
       </div>
     </section>
 
+    <!-- РЕЗУЛЬТАТЫ ОНЛАЙН-ГОНКИ -->
+    <section id="screen-online-results" class="screen center dim">
+      <div class="modal results">
+        <h2 id="or-title"></h2>
+        <div class="or-sub" id="or-sub"></div>
+        <div class="or-wrap"><table class="or-table" id="or-table"></table></div>
+        <div class="or-coins" id="or-coins"></div>
+        <div class="modal-buttons">
+          <button class="btn btn-primary" data-action="on-rematch" data-i18n="rematch"></button>
+          <button class="btn" data-action="on-menu" data-i18n="menu"></button>
+        </div>
+      </div>
+    </section>
+
     <!-- ПОВЕРНИТЕ ТЕЛЕФОН -->
     <section id="rotate-hint">
       <div class="phone-icon">📱</div>
@@ -197,6 +285,7 @@
     </section>
 
     <div id="flash"></div>
+    <div id="toast" role="status"></div>
   </div>
 </div>
 <script type="module" src="js/main.js"></script>

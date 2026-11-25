@@ -9,7 +9,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const laneX = (i) => (i - 1.5) * LANE_W;
 
 // ---------- Модели ----------
-function heliModel() {
+export function heliModel() {
   const b = new Builder();
   const c = Math.random() < 0.5 ? 0xd8342c : 0x2b5fd9;
   b.blob('ico1', 1.25, 1.15, 2.2, 0, 0, 0, c);                     // кабина
@@ -39,7 +39,7 @@ function heliModel() {
   };
 }
 
-function droneModel() {
+export function droneModel() {
   const b = new Builder();
   b.box(0.9, 0.35, 0.9, 0, 0, 0, 0x2b2e36);
   b.box(0.5, 0.2, 0.5, 0, -0.25, 0, 0x111318);
@@ -53,7 +53,7 @@ function droneModel() {
   return { group, spin: [], boxes: [{ cx: 0, cy: 0, cz: 0, hx: 2.3, hy: 0.7, hz: 2.3 }] };
 }
 
-function flockModel() {
+export function flockModel() {
   const group = new THREE.Group();
   const birds = [];
   const bodyB = new Builder();
@@ -86,7 +86,7 @@ const concrete = new THREE.MeshLambertMaterial({ color: 0xa9a49a });
 const stripe = new THREE.MeshBasicMaterial({ color: 0xffc21a });
 const unitBox = new THREE.BoxGeometry(1, 1, 1);
 
-function bridgeModel() {
+export function bridgeModel() {
   const group = new THREE.Group();
   const parts = {};
   for (const k of ['deck', 'beam', 'left', 'right', 'pillarL', 'pillarR', 'railL', 'railR']) {
@@ -100,7 +100,7 @@ function bridgeModel() {
 const BEAM_Y = 4.6, GAP_Y0 = 5.7, GAP_Y1 = 9.7, DECK_Y = 11, DEPTH = 3;
 const OUT = EDGE + 3; // ширина эстакады чуть больше дороги
 
-function layoutBridge(h, lane0, lanes) {
+export function layoutBridge(h, lane0, lanes) {
   const P = h.parts;
   const gx0 = laneX(lane0) - LANE_W / 2 - 0.4;
   const gx1 = laneX(lane0 + lanes - 1) + LANE_W / 2 + 0.4;
@@ -131,7 +131,7 @@ function layoutBridge(h, lane0, lanes) {
   ];
 }
 
-function batteryModel() {
+export function batteryModel() {
   const b = new Builder();
   b.cyl(0.42, 1.1, 0, 0, 0, 0x39ff7a, 'glow', 12);
   b.cyl(0.44, 0.18, 0, -0.5, 0, 0x2a2d33, 'lit', 12);

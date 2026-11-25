@@ -12,6 +12,7 @@ function defaults() {
     records: {},           // режим -> [{ score, date, car, loc }]
     rotateDismissed: false,
     tutorial: { jump: false, fly: false }, // показаны ли подсказки обучения
+    nick: '',              // ник для онлайна (хранится только в этом браузере)
     version: 2,
   };
 }
@@ -53,9 +54,10 @@ export function save() {
 export function get() { return data; }
 
 export function resetAll() {
-  const lang = data.settings.lang;
+  const lang = data.settings.lang, nick = data.nick;
   data = defaults();
   data.settings.lang = lang;
+  data.nick = nick;
   save();
 }
 
