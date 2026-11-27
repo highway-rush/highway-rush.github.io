@@ -5,7 +5,7 @@ import { makeRng, mixSeed } from './prng.js';
 
 // Должны совпадать с world.js / air.js
 export const LANE_W = 3.6;
-export const EDGE = LANE_W * 2 + 1.3;
+export const EDGE = LANE_W * 2 + 0.8;
 export const FLY_Y = 7;
 
 const KMH = 1 / 3.6;

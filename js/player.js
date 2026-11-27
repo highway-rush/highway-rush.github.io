@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { buildVehicle, buildWings, getGlowTexture, disposeVehicle } from './models.js';
 import { carPhysics } from './cars.js';
-import { EDGE } from './world.js';
+import { EDGE, ROAD_HALF, LANE_W } from './world.js';
 import { FLY_Y } from './air.js';
 
 const GRAVITY = 18;          // м/с² — «игровая» гравитация: дуга плавная, но бодрая
@@ -172,8 +172,9 @@ export class Player {
     this.vx += (targetVx - this.vx) * Math.min(1, g * dt);
     this.x += this.vx * dt;
 
-    // Отбойники по краям
-    const limit = EDGE - this.width / 2 - 0.15;
+    // Отбойники по краям. Обочина узкая: даже прижавшись к отбойнику,
+    // нельзя проехать мимо легковушки на крайней полосе, не задев её.
+    const limit = Math.min(EDGE - this.width / 2 - 0.15, ROAD_HALF - LANE_W / 2 + 1.35);
     if (Math.abs(this.x) > limit) {
       this.x = Math.sign(this.x) * limit;
       if (Math.abs(this.vx) > 1 && !this.airborne) events.scrape = true;

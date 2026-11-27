@@ -5,7 +5,7 @@ import { LOCATIONS } from './locations.js';
 
 export const LANE_W = 3.6;
 export const ROAD_HALF = LANE_W * 2;     // 4 полосы
-export const SHOULDER = 1.3;
+export const SHOULDER = 0.8;
 export const SEG_LEN = 40;
 export const EDGE = ROAD_HALF + SHOULDER; // край асфальта
 
