@@ -11,6 +11,7 @@ const JUMP_HEIGHT = 6;       // чуть выше грузовика (3.9 м), �
 export const JUMP_COOLDOWN = 3;
 export const FLY_MIN_ENERGY = 0.15;
 const FLY_DRAIN = 1 / 7;     // полной шкалы хватает на ~7 секунд
+const FLY_RESTART_COST = 0.1; // повторное включение полёта в воздухе (~0.7 с полёта)
 
 export class Player {
   constructor(scene) {
@@ -127,8 +128,11 @@ export class Player {
     if (this.crashed) return null;
     if (this.airMode === 'fly') { this.airMode = 'glide'; return 'off'; }
     if (this.energy < FLY_MIN_ENERGY) return 'noenergy';
+    // Повторное включение из планирования стоит энергии и не даёт толчка вверх,
+    // иначе частыми нажатиями можно лететь почти бесплатно
+    if (this.airMode === 'glide') this.energy -= FLY_RESTART_COST;
+    else if (this.vy < 2) this.vy = 4;
     this.airMode = 'fly';
-    if (this.vy < 2) this.vy = 4;
     return 'on';
   }
 
