@@ -9,6 +9,7 @@ export class Input {
     this.hornPressed = false; // флаг «нажали гудок» (сбрасывается после чтения)
     this.jumpPressed = false; // то же для прыжка
     this.flyPressed = false;  // и для полёта (вкл/выкл)
+    this.ghostPressed = false; // 6+7 одновременно — езда сквозь машины (вкл/выкл)
     this.onPause = null;
     this.isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     if (this.isTouch) document.body.classList.add('touch');
@@ -21,6 +22,8 @@ export class Input {
       if (k === 'KeyH') this.hornPressed = true;
       if (k === 'Space') this.jumpPressed = true;
       if (k === 'KeyF' || k === 'ShiftLeft' || k === 'ShiftRight') this.flyPressed = true;
+      const six = (c) => c === 'Digit6' || c === 'Numpad6', seven = (c) => c === 'Digit7' || c === 'Numpad7';
+      if ((six(k) && (this.keys.has('Digit7') || this.keys.has('Numpad7'))) || (seven(k) && (this.keys.has('Digit6') || this.keys.has('Numpad6')))) this.ghostPressed = true;
       if ((k === 'Escape' || k === 'KeyP') && this.onPause) this.onPause();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
@@ -110,13 +113,13 @@ export class Input {
       steer = Math.abs(v) < dz ? 0 : (v - Math.sign(v) * dz) / (1 - dz);
       analog = true;
     }
-    const horn = this.hornPressed, jump = this.jumpPressed, fly = this.flyPressed;
-    this.hornPressed = this.jumpPressed = this.flyPressed = false;
+    const horn = this.hornPressed, jump = this.jumpPressed, fly = this.flyPressed, ghost = this.ghostPressed;
+    this.hornPressed = this.jumpPressed = this.flyPressed = this.ghostPressed = false;
     return {
       steer, analog,
       gas: k.has('ArrowUp') || k.has('KeyW') || t.gas,
       brake: k.has('ArrowDown') || k.has('KeyS') || t.brake,
-      horn, jump, fly,
+      horn, jump, fly, ghost,
       hornHeld: k.has('KeyH') || t.horn,
     };
   }

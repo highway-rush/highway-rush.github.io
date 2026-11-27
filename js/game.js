@@ -161,6 +161,10 @@ export class Game {
       if (r === 'on') this.tutorialDone('fly');
       else if (r === 'noenergy') { this.audio.denied(); this.ui.popup(t('noEnergy'), 'blue'); }
     }
+    if (inp.ghost) {
+      this.ghost = !this.ghost;
+      this.ui.popup(t(this.ghost ? 'ghostOn' : 'ghostOff'), 'blue');
+    }
     const ev = p.update(dt, inp, this.loc.grip);
     if (ev.scrape) this.audio.scrape();
     if (ev.wingsOpen) this.audio.wings();
@@ -178,7 +182,7 @@ export class Game {
     for (const v of this.traffic.active) {
       const dx = Math.abs(v.x - p.x), dz = Math.abs(v.z - p.z);
       const lowEnough = p.y < (v.height || 1.5) - 0.15;
-      if (lowEnough && dx < (v.width + p.width) / 2 - 0.12 && dz < (v.length + p.length) / 2 - 0.15) {
+      if (!this.ghost && lowEnough && dx < (v.width + p.width) / 2 - 0.12 && dz < (v.length + p.length) / 2 - 0.15) {
         return this.onCrash(v);
       }
       const rel = v.z - p.z;

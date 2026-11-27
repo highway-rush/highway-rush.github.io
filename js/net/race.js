@@ -202,6 +202,10 @@ export class OnlineRace {
 
     // Управление: до старта, во время штрафа и после финиша — без руля и газа
     let inp = g.input.read();
+    if (inp.ghost) { // 6+7 — езда сквозь машины трафика (общий флаг с одиночной игрой)
+      g.ghost = !g.ghost;
+      g.ui.popup(t(g.ghost ? 'ghostOn' : 'ghostOff'), 'blue');
+    }
     const stopped = this.penT > GHOST_TIME;
     if (!started || stopped || this.finished) inp = NO_INPUT;
     else {
@@ -231,7 +235,7 @@ export class OnlineRace {
 
     // Трафик: позиции — функция от времени гонки
     V.traffic.update(dt, this.track.cars, rt, p.z, viewDist);
-    this.trafficCollisions(ghost);
+    this.trafficCollisions(ghost || g.ghost);
 
     // Воздушные препятствия
     V.hazards.update(dt, this.track.hazards, rt, p.z, viewDist);
