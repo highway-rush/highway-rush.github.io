@@ -13,6 +13,7 @@ function defaults() {
     rotateDismissed: false,
     tutorial: { jump: false, fly: false }, // показаны ли подсказки обучения
     nick: '',              // ник для онлайна (хранится только в этом браузере)
+    quests: { day: '', daily: [], done: {}, best: {} }, // задания: см. quests.js
     version: 2,
   };
 }
@@ -28,6 +29,7 @@ export function load() {
       data = { ...d, ...parsed, settings: { ...d.settings, ...(parsed.settings || {}) } };
       if (!Array.isArray(data.owned) || !data.owned.includes('sedan')) data.owned = ['sedan', ...(data.owned || [])];
       data.tutorial = { ...d.tutorial, ...(parsed.tutorial || {}) };
+      data.quests = { ...d.quests, ...(parsed.quests || {}) };
       migrate(parsed);
     }
   } catch (e) {

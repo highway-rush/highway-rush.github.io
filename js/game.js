@@ -9,6 +9,7 @@ import { createMode } from './modes.js';
 import { carById } from './cars.js';
 import { buildVehicle } from './models.js';
 import * as storage from './storage.js';
+import * as quests from './quests.js';
 import { t } from './i18n.js';
 
 const KMH = 3.6;
@@ -90,6 +91,9 @@ export class Game {
     this.runTime = 0; this.shake = 0; this.crashT = 0;
     this.jumps = 0; this.flyTime = 0; this.jumpOverCount = 0; this.lowWarnT = 0;
     this.tutorialT = 0;
+    this.batteries = 0; this.maxCombo = 0;
+    this.questsDone = []; this.questT = 0;
+    this.ghostUsed = !!this.ghost; // со «сквозь машины» задания не засчитываются
     this.state = 'playing';
     this.camera.position.set(this.player.x, 3.4, this.player.z + 8);
     this.audio.setSiren(this.mode.siren);
@@ -163,6 +167,7 @@ export class Game {
     }
     if (inp.ghost) {
       this.ghost = !this.ghost;
+      if (this.ghost) this.ghostUsed = true;
       this.ui.popup(t(this.ghost ? 'ghostOn' : 'ghostOff'), 'blue');
     }
     const ev = p.update(dt, inp, this.loc.grip);
@@ -216,6 +221,8 @@ export class Game {
     } else this.lowWarnT = 0;
 
     const end = this.mode.update(dt, this);
+    this.questT -= dt;
+    if (this.questT <= 0) { this.questT = 0.2; this.checkQuests(); }
     if (this.mode.siren) p.updateLightbar(this.time);
     this.world.update(dt, p.z, p.speed, this.camera);
     this.updateCamera(dt);
@@ -236,6 +243,7 @@ export class Game {
   }
 
   onBattery() {
+    this.batteries++;
     this.player.addEnergy(0.3);
     this.score += 100;
     this.ui.popup(t('battery', { n: 30 }), 'blue');
@@ -266,6 +274,7 @@ export class Game {
   onNearMiss() {
     this.nearMisses++;
     this.combo = Math.min(this.combo + 1, 9);
+    this.maxCombo = Math.max(this.maxCombo, this.combo);
     this.comboT = 4;
     const bonus = 100 * this.combo;
     this.score += bonus;
@@ -300,12 +309,37 @@ export class Game {
     if (this.crashT > 1.6) this.finishRun('crashed');
   }
 
+  // ---------- Задания ----------
+  questStats() {
+    const m = this.mode;
+    return {
+      mode: this.modeId, loc: this.locId,
+      dist: this.distance, speed: this.player.maxSpeedReached * KMH, near: this.nearMisses,
+      jumps: this.jumps, over: this.jumpOverCount, fly: this.flyTime, batt: this.batteries,
+      score: this.score, combo: this.maxCombo,
+      cp: m.count || 0, caught: m.caughtCount || 0, oncoming: m.totalOn || 0,
+    };
+  }
+
+  checkQuests() {
+    if (this.ghostUsed) return;
+    for (const d of quests.check(this.questStats())) {
+      this.questsDone.push(d);
+      this.ui.popup(t('questDone', { n: d.reward }), 'gold');
+      this.audio.coin();
+    }
+  }
+
   finishRun(reason) {
     this.state = 'results';
     this.audio.setEngine(false);
     this.audio.setSiren(false);
     this.audio.setFly(0);
     this.ui.setHint(null);
+    if (!this.ghostUsed && this.mode) {
+      this.checkQuests();
+      quests.saveBest(this.questStats());
+    }
     const score = Math.floor(this.score);
     const coins = Math.floor(score / 10);
     storage.addCoins(coins);
@@ -321,6 +355,7 @@ export class Game {
       flyTime: this.flyTime,
       best: storage.bestScore(this.modeId),
       extra: this.mode.extraResults(),
+      quests: this.questsDone, ghostUsed: this.ghostUsed,
     });
   }
 

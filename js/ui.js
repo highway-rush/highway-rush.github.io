@@ -5,6 +5,7 @@ import { CARS, PAINTS, PAINT_PRICE, carById } from './cars.js';
 import { LOCATIONS, LOCATION_IDS } from './locations.js';
 import { MODE_IDS, MODE_ICONS, MODE_COLORS } from './modes.js';
 import { JUMP_COOLDOWN, FLY_MIN_ENERGY } from './player.js';
+import * as quests from './quests.js';
 
 const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -12,7 +13,7 @@ const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 
 const SCREENS = {
   loading: '#screen-loading', menu: '#screen-menu', modes: '#screen-modes', locations: '#screen-locations',
-  garage: '#screen-garage', records: '#screen-records', settings: '#screen-settings',
+  garage: '#screen-garage', quests: '#screen-quests', records: '#screen-records', settings: '#screen-settings',
   hud: '#hud', pause: '#screen-pause', results: '#screen-results',
   online: '#screen-online', lobby: '#screen-lobby', 'online-results': '#screen-online-results',
 };
@@ -65,6 +66,7 @@ export class UI {
       this.previewColor = null;
       this.renderGarage();
     }
+    if (name === 'quests') this.renderQuests();
     if (name === 'records') this.renderRecords();
     if (name === 'settings') this.renderSettings();
   }
@@ -90,6 +92,7 @@ export class UI {
       case 'garage':
         if (this.current === 'results') { g.startDemo(this.lastLoc); this.stack = ['menu']; this.show('garage'); return; }
         return this.show('garage', true);
+      case 'quests': return this.show('quests', true);
       case 'records': return this.show('records', true);
       case 'settings': return this.show('settings', true);
       case 'back': return this.back();
@@ -153,7 +156,11 @@ export class UI {
   }
 
   // ---------- Главное меню, режимы, локации ----------
-  renderMenu() { this.renderLangSwitches(); this.updateCoins(); }
+  renderMenu() {
+    this.renderLangSwitches(); this.updateCoins();
+    const d = quests.daily();
+    $('#menu-quest-badge').textContent = `${d.filter(quests.isDone).length}/${d.length}`;
+  }
 
   renderModes() {
     $('#mode-cards').innerHTML = MODE_IDS.map((id) => {
@@ -246,6 +253,27 @@ export class UI {
     n.textContent = t('notEnough');
     n.style.color = '#ff4a4a';
     setTimeout(() => (n.style.color = ''), 900);
+  }
+
+  // ---------- Задания ----------
+  renderQuests() {
+    this.updateCoins();
+    const row = (d) => {
+      const done = quests.isDone(d);
+      const pct = done ? 100 : Math.min(100, (quests.best(d) / d.n) * 100);
+      const chips = quests.chips(d).map((c) => `<span class="q-chip">${c}</span>`).join('');
+      return `<div class="quest ${done ? 'done' : ''}">
+        <div class="q-main"><div class="q-title">${quests.title(d)}${chips}</div><div class="q-bar"><i style="width:${pct}%"></i></div></div>
+        <div class="q-side">${done ? `<span class="q-ok">✓ ${t('questOk')}</span>` : `<small>${quests.progressText(d)}</small>`}
+          <span class="q-reward"><i class="coin"></i>${fmt(d.reward)}</span></div>
+      </div>`;
+    };
+    $('#quests-daily').innerHTML = quests.daily().map(row).join('');
+    const ach = quests.achievements();
+    $('#quests-ach').innerHTML = ach.map(row).join('');
+    $('#quests-ach-count').textContent = `${ach.filter(quests.isDone).length}/${ach.length}`;
+    const min = Math.ceil(quests.msToReset() / 60000);
+    $('#quests-refresh').textContent = t('questsRefresh', { h: Math.floor(min / 60), m: min % 60 });
   }
 
   // ---------- Рекорды ----------
@@ -393,6 +421,12 @@ export class UI {
       ['best', fmt(r.best)],
     ];
     if (cells.length % 2 === 0) cells[cells.length - 1][2] = 'wide';
+    const qb = $('#results-quests');
+    if (r.ghostUsed) qb.innerHTML = `<div class="rq-note">${t('questsGhost')}</div>`;
+    else if (r.quests.length) {
+      qb.innerHTML = `<small>${t('questsDoneRun')}</small>` +
+        r.quests.map((d) => `<div class="rq"><span>✓ ${quests.title(d)}</span><b><i class="coin"></i>+${fmt(d.reward)}</b></div>`).join('');
+    } else qb.innerHTML = '';
     $('#results-grid').innerHTML = cells.map(([k, v, cls]) => `<div class="${cls || ''}"><small>${t(k)}</small><b>${v}</b></div>`).join('');
     this.updateCoins();
     this.show('results');

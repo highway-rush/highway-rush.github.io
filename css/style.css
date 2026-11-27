@@ -109,7 +109,7 @@ html, body {
 /* ЗАГОЛОВКИ ЭКРАНОВ */
 .screen-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex: none; }
 .screen-head h2 { margin: 0; font-size: clamp(22px, 4vw, 34px); font-weight: 900; font-style: italic; text-transform: uppercase; }
-#screen-modes, #screen-locations, #screen-records, #screen-settings { background: linear-gradient(160deg, rgba(11,16,32,0.92), rgba(30,14,40,0.88)); }
+#screen-modes, #screen-locations, #screen-quests, #screen-records, #screen-settings { background: linear-gradient(160deg, rgba(11,16,32,0.92), rgba(30,14,40,0.88)); }
 
 /* КАРТОЧКИ */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
@@ -276,6 +276,7 @@ body.tilt .tc-left { display: none; }
   .menu-center { gap: 10px; margin: 0; }
   .menu-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: min(520px, calc(100vw - 150px)); }
   .menu-buttons .btn-big { grid-column: span 2; }
+  .menu-buttons .btn:last-child:nth-child(even) { grid-column: span 2; }
   #screen-menu .logo { font-size: clamp(30px, 6.5vw, 56px); }
   .menu-footer { position: absolute; left: calc(14px + var(--safe-l)); bottom: calc(10px + var(--safe-b)); }
   .card { min-height: 100px; padding: 12px; }
@@ -529,3 +530,41 @@ body.touch .opp-arrow.down { bottom: 47%; }
   .hud-race { width: min(46vw, 420px); }
   #race-wait { top: 18%; padding: 8px 16px; }
 }
+
+/* ЗАДАНИЯ */
+.quest-badge {
+  margin-left: 8px; font-size: 13px; font-weight: 900; padding: 2px 8px; border-radius: 999px;
+  background: var(--accent2); color: #231400; vertical-align: middle;
+}
+.quest-badge:empty { display: none; }
+.quests-wrap { display: flex; flex-direction: column; gap: 10px; width: min(760px, 100%); align-self: center; }
+.quests-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.quests-sec-head h3 { margin: 0; font-size: 20px; font-weight: 900; font-style: italic; text-transform: uppercase; }
+.quests-sec-head span { color: var(--muted); font-size: 14px; font-weight: 700; }
+.quest-list { display: flex; flex-direction: column; gap: 8px; }
+.quest {
+  display: flex; align-items: center; gap: 14px; background: var(--panel); border-radius: 14px; padding: 12px 14px;
+  border: 2px solid transparent;
+}
+.quest.done { border-color: rgba(62,224,122,0.45); }
+.q-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.q-title { font-weight: 800; font-size: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.q-chip { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.12); color: var(--muted); }
+.q-bar { height: 8px; background: rgba(255,255,255,0.12); border-radius: 6px; overflow: hidden; }
+.q-bar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+.quest.done .q-bar i { background: var(--good); }
+.q-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.q-side small { color: var(--muted); font-weight: 700; font-size: 13px; }
+.q-ok { color: var(--good); font-weight: 900; font-size: 14px; }
+.q-reward { display: inline-flex; align-items: center; gap: 6px; font-weight: 900; color: var(--accent2); }
+.q-reward .coin, .rq .coin { width: 16px; height: 16px; }
+.quests-note { color: var(--muted); font-size: 13px; text-align: center; margin: 6px 0 0; }
+.results-quests { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.results-quests:empty { display: none; }
+.results-quests > small { color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 700; }
+.rq {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px;
+  background: rgba(62,224,122,0.14); font-weight: 800;
+}
+.rq b { display: inline-flex; align-items: center; gap: 6px; color: var(--accent2); }
+.rq-note { color: var(--muted); font-size: 13px; text-align: center; }

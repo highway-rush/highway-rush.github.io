@@ -37,6 +37,7 @@
           <button class="btn btn-primary btn-big" data-action="play" data-i18n="play"></button>
           <button class="btn btn-online" data-action="online"><span class="online-dot"></span><span data-i18n="online"></span></button>
           <button class="btn" data-action="garage" data-i18n="garage"></button>
+          <button class="btn" data-action="quests"><span data-i18n="quests"></span><span class="quest-badge" id="menu-quest-badge"></span></button>
           <button class="btn" data-action="records" data-i18n="records"></button>
           <button class="btn" data-action="settings" data-i18n="settings"></button>
         </div>
@@ -84,6 +85,22 @@
           <div class="garage-note" id="garage-note"></div>
           <button class="btn btn-primary" id="garage-main-btn" data-action="car-main"></button>
         </div>
+      </div>
+    </section>
+
+    <!-- ЗАДАНИЯ -->
+    <section id="screen-quests" class="screen">
+      <div class="screen-head">
+        <button class="btn btn-back" data-action="back">←</button>
+        <h2 data-i18n="quests"></h2>
+        <div class="coins-pill"><i class="coin"></i><span class="coins-value">0</span></div>
+      </div>
+      <div class="quests-wrap">
+        <div class="quests-sec-head"><h3 data-i18n="dailyQuests"></h3><span id="quests-refresh"></span></div>
+        <div class="quest-list" id="quests-daily"></div>
+        <div class="quests-sec-head"><h3 data-i18n="achievements"></h3><span id="quests-ach-count"></span></div>
+        <div class="quest-list" id="quests-ach"></div>
+        <p class="quests-note" data-i18n="inOneRun"></p>
       </div>
     </section>
 
@@ -255,6 +272,7 @@
         <h2 id="results-title"></h2>
         <div class="new-record" id="results-record" data-i18n="newRecord"></div>
         <div class="results-grid" id="results-grid"></div>
+        <div class="results-quests" id="results-quests"></div>
         <div class="modal-buttons">
           <button class="btn btn-primary" data-action="restart" data-i18n="again"></button>
           <button class="btn" data-action="garage" data-i18n="garage"></button>
